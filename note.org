@@ -5,7 +5,7 @@
   - tools -> add target
 #+CAPTION: USB ISP SETTING
 #+NAME:   fig:SED-HR4049
-[[./images/addtarget.jpg]]
+[[./images/addTarget.jpg]]
 
 * AVR
   
