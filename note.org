@@ -1,0 +1,78 @@
+* atmel studio 7 install
+  - [[https://www.microchip.com/mplab/avr-support/atmel-studio-7][atmel studio 7]]
+    
+* USB ISP
+  - tools -> add target
+#+CAPTION: USB ISP SETTING
+#+NAME:   fig:SED-HR4049
+[[./images/addtarget.jpg]]
+
+* AVR
+  
+** fuse bit Settgin
+   - tools -> device programming -> 
+   - [[https://m.blog.naver.com/PostView.nhn?blogId=nkkh159&logNo=220801733605&proxyReferer=https://www.google.com/][fuse bit setting link]]
+#+CAPTION: Fuse Bit Setting for 8 F_CPU internal oscillator
+#+NAME:   fig:SED-HR4049
+[[./images/fuseSetting.jpg]]
+     
+** avr studio keyboard shortcut
+   - Ctl + Alt + F5 -> compile && download
+   - F7 -> project build
+     
+* Day 1
+  
+** GPIO
+
+** UART
+
+#+BEGIN_SRC C
+  /*
+   * Author : Sanglae Kim
+   */ 
+  #include <stdio.h> //for printf
+  #include <stdint.h> // for uint~~
+  #include <assert.h>
+  #include <stdbool.h>
+
+  #define F_CPU 8000000UL
+  #include <avr/io.h>
+  #include <util/delay.h>
+
+  #define BAUD 9600
+  #define MYUBRR F_CPU/16/BAUD-1
+
+  void USART_init(unsigned int ubrr) {
+      UBRRH = (unsigned char)(ubrr >> 8);
+      UBRRL = (unsigned char)ubrr;
+      UCSRB = 1 << RXEN  | 1 << TXEN;
+      UCSRC = 1 << URSEL | 1 << USBS | 3 << UCSZ0;
+  }
+
+  int USART_transmit( unsigned char data, FILE *stream ) {
+      while(!(UCSRA & (1 << UDRE)));
+      UDR = data;
+      return 0;
+  }
+
+  int main(void)
+  {
+      fdevopen(USART_transmit, NULL);
+      DDRB = (1 << DDB0);
+      USART_init(MYUBRR);
+      uint8_t i=0;
+	
+      /* Replace with your application code */
+      while (1) 
+      {
+	  if(PINB & (1 << PINB1)){
+	      printf("%d: Hello Wrold\r\n", i++);	
+	      _delay_ms(1000);
+	  }else{
+	      _delay_ms(100);
+	  }
+	  PORTB ^= 1;
+      }
+  }
+
+#+END_SRC
