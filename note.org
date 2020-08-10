@@ -86,6 +86,10 @@
 * Day 2
 ** Timer1 Interrupt
    
+#+CAPTION: USB ISP SETTING
+#+NAME:   fig:SED-HR4049
+[[./images/timer1.jpg]]
+
 #+BEGIN_SRC C
 //https://github.com/monoclecat/avr-millis-function
   #include <stdio.h> //for printf
@@ -168,8 +172,12 @@
 
 #+END_SRC
 
+
 ** Timer0 Interrupt
-   
+#+CAPTION: USB ISP SETTING
+#+NAME:   fig:SED-HR4049
+[[./images/timer0.jpg]]
+
 #+BEGIN_SRC C
 
   /*
