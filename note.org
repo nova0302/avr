@@ -330,3 +330,8 @@
 
 
 #+END_SRC
+
+* Register Summary
+#+CAPTION: register summary
+#+NAME:   fig:SED-HR4049
+[[./images/regSummary.jpg]]
