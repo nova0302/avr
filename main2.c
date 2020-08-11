@@ -21,8 +21,8 @@ int main(void)
 {
 
 	// timer0 setting
-	TCCR0 |= (1 << CS02) | (1 << CS00);
-	OCR0 = 255;
+	TCCR0 |= (1 << WGM01) | (1 << CS02) | (1 << CS00);
+	OCR0 = 64;
 	TIMSK |= (1 << OCIE0);
 	sei();
 
