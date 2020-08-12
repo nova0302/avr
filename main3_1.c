@@ -1,9 +1,10 @@
 /*
-* day3.c
-*
-* Created: 2020-08-12 오전 9:32:29
-* Author : TEACHER
-*/
+ * Day3_1.c
+ *
+ * Created: 2020-08-12 오후 2:12:03
+ * Author : PC2
+ */ 
+
 #define F_CPU 8000000UL
 #include <avr/io.h>
 #include <util/delay.h>
@@ -14,15 +15,15 @@ void init_millis(unsigned long f_cpu);
 
 uint16_t num = 0;
 uint8_t bP[10] ={
-	0b11111001 		,0b11111001
-	,0b11111001 	,0b11111001
-	,0b11111001		,0b11111001
-	,0b11111001		,0b11111001
-	,0b11111001		,0b11111001
+	0b0111111       ,0b0000110
+	,0b1011011      ,0b1001111
+	,0b1100110      ,0b1101101
+	,0b1111101      ,0b0100111
+	,0b1111111      ,0b1101111
 };
 int main(void)
 {
-	unsigned long tNow, tLast=0;
+	unsigned long tNow, tLast=0, tLast1=0;
 	uint8_t btnLast, btnNow;
 	uint8_t cntUp = 1;
 	
@@ -37,33 +38,43 @@ int main(void)
 	DDRC = 0xFF;
 	PORTC = 0;
 	// port b 0번째 비트를 출력으로 설정
-	DDRB = 1;
+	DDRB = (1 << DDB3);
+	DDRD = (1 << DDD0);
+	
 	init_millis(8000000UL); //the frequency Atmega16a is running at
 	sei(); // 글로벌 인터럽트 인에이블
 	
 	while (1)// 조건이 참(0이아니면)이면 반복해서 계속 실행
 	{
-		PORTB ^= 1;
-		if(cntUp)
-		{
-			if (++num > 999)
-				num = 0;
-		}
-		else
-		{
-			if (--num < 0)
-				num = 999;	
-		}
 		tNow = millis();
-		if(tNow - tLast > 10)
+		if(tNow - tLast > 50)
 		{
 			btnNow = (PINB & (1 << PINB2)) ? 1 : 0;
 			if(!btnNow && btnLast)
-				cntUp = cntUp ? 0 : 1;
+			{
+				PORTD  ^= 1;
+				if(cntUp == 0)
+					cntUp = 1;
+				else
+					cntUp = 0;
+			}	
 			btnLast = btnNow;
 			tLast = tNow;
 		}
-		_delay_ms(100);
+		if(tNow - tLast1 > 100){
+			if(cntUp)
+			{
+				if (++num > 999)
+				num = 0;
+			}
+			else
+			{
+				if (--num < 0)
+				num = 999;
+			}
+			tLast1 = tNow;
+		}
+		//_delay_ms(100);
 	}
 }
 // Interrupt Service Routine
@@ -132,4 +143,5 @@ unsigned long millis ()
 	}
 	return millis_return;
 }
+
 
