@@ -50,7 +50,7 @@ ISR(TIMER0_COMP_vect)
 		PORTA |= (1 << DDA3) | (1 << DDA2);
 		PORTA &= ~(1 << DDA1);// 11111101
 	}
-	else if (selDigit = 1)
+	else if (selDigit == 1)
 	{
 		selDigit = 2;
 		uint8_t digit = (num / 10) % 10; // 10의 자리값 계산
