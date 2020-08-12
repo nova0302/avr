@@ -57,9 +57,9 @@ int main(void)
 		tNow = millis();
 		if(tNow - tLast > 10)
 		{
-			btnNow = (PINB & (1 << PINB1)) ? 1 : 0;
+			btnNow = (PINB & (1 << PINB2)) ? 1 : 0;
 			if(!btnNow && btnLast)
-			cntUp = cntUp ? 0 : 1;
+				cntUp = cntUp ? 0 : 1;
 			btnLast = btnNow;
 			tLast = tNow;
 		}
