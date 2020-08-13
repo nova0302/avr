@@ -25,10 +25,10 @@ void stepStm(EMotDir dir)
 	}
 
 	switch (theCounter) {
-		case 0: {PORTD &= 0b10001011; break;}
-		case 1: {PORTD &= 0b10010011; break;}
-		case 2: {PORTD &= 0b10100011; break;}
-		case 3: {PORTD &= 0b11000011; break;}
+		case 0: {PORTD &= 0b10001111; break;}
+		case 1: {PORTD &= 0b10010111; break;}
+		case 2: {PORTD &= 0b10100111; break;}
+		case 3: {PORTD &= 0b11000111; break;}
 		default: break;
 	}
 }
