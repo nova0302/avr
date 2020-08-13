@@ -51,12 +51,15 @@ int main(void)
 			{
 				PORTD  ^= 1;
 				en2Now = (PINB & (1 << PINB1)) ? 1 : 0;
-				if(en1Now == en2Now){
-					if(++num > 999) num = 0;
+				if(en1Now == en2Now)
+				{
+					if(++num > 999) 
+						num = 0;
 				}
 				else
 				{
-					if(--num < 0) num = 999;
+					if(--num < 0) 
+						num = 999;
 				}
 			}
 			en1Last = en1Now;
