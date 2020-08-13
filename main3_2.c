@@ -23,10 +23,10 @@ uint8_t bP[10] ={
 };
 int main(void)
 {
-	unsigned long tNow, tLast=0, tLast1=0;
-	uint8_t enswLast, enswNow;
-	uint8_t en1Last, en1Now;
-	uint8_t en2Last, en2Now;
+	unsigned long tNow, tLast=0;
+	uint8_t enswLast=0, enswNow;
+	uint8_t en1Last=0, en1Now;
+	uint8_t en2Now;
 	uint8_t cntUp = 1;
 	boardInit();
 	while (1)// 조건이 참(0이아니면)이면 반복해서 계속 실행
@@ -51,10 +51,13 @@ int main(void)
 			{
 				PORTD  ^= 1;
 				en2Now = (PINB & (1 << PINB1)) ? 1 : 0;
-				if(en2Now) 
-					num++;
+				if(en1Now == en2Now){
+					if(++num > 999) num = 0;
+				}
 				else
-					num--;
+				{
+					if(--num < 0) num = 999;
+				}
 			}
 			en1Last = en1Now;
 			tLast = tNow;
