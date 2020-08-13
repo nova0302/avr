@@ -34,6 +34,8 @@ void stepStm(EMotDir dir)
 }
 int main(void)
 {
+	// port D의 6:3번째 비트를 출력으로 설정
+	DDRD |= (1 << DDD6) |(1 << DDD5)| (1 << DDD4)| (1 << DDD3);
 	/* Replace with your application code */
 	while (1)
 	{
