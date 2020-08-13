@@ -331,11 +331,214 @@
 
 #+END_SRC
 
-* Day 4.1 Rotary Encoder
-https://www.youtube.com/watch?v=v4BbSzJ-hz4
+* Day 4 Rotary Encoder && Stepper Motor
+  - https://www.youtube.com/watch?v=v4BbSzJ-hz4
+** Rotary Encoder
+#+BEGIN_SRC c
+#define F_CPU 8000000UL
+#include <avr/io.h>
+#include <util/delay.h>
+#include <util/atomic.h>
+#include <avr/interrupt.h>
+
+unsigned long millis ();
+void init_millis(unsigned long f_cpu);
+void boardInit(void);
+
+int16_t num = 0;
+uint8_t bP[10] ={
+	0b0111111       ,0b0000110
+	,0b1011011      ,0b1001111
+	,0b1100110      ,0b1101101
+	,0b1111101      ,0b0100111
+	,0b1111111      ,0b1101111
+};
+int main(void)
+{
+	unsigned long tNow, tLast=0;
+	uint8_t enswLast=0, enswNow;
+	uint8_t en1Last=0, en1Now;
+	uint8_t en2Now;
+	uint8_t cntUp = 1;
+	boardInit();
+	while (1)// 조건이 참(0이아니면)이면 반복해서 계속 실행
+	{
+		tNow = millis();
+		if(tNow - tLast > 50)
+		{
+			// EN_SW Event 처리
+			enswNow = (PINB & (1 << PINB2)) ? 1 : 0;
+			if(!enswNow && enswLast)
+			{
+				PORTD  ^= 1;
+				if(cntUp == 0)
+					cntUp = 1;
+				else
+					cntUp = 0;
+			}
+			enswLast = enswNow;
+			// Rotary Encoder 회전 처리
+			en1Now = (PINB & (1 << PINB0)) ? 1 : 0;
+			if(en1Now != en1Last)
+			{
+				PORTD  ^= 1;
+				en2Now = (PINB & (1 << PINB1)) ? 1 : 0;
+				if(en1Now == en2Now)
+				{
+					if(++num > 999) 
+						num = 0;
+				}
+				else
+				{
+					if(--num < 0) 
+						num = 999;
+				}
+			}
+			en1Last = en1Now;
+			tLast = tNow;
+		}
+	}
+}
+
+
+// Interrupt Service Routine
+ISR(TIMER0_COMP_vect)
+{
+	static uint8_t selDigit = 0;
+	if(selDigit == 0){
+		selDigit = 1;
+		uint8_t digit = num / 100; // 100의 자리값 계산
+		PORTC = bP[digit]; // data 실어주고
+		PORTA |= (1 << DDA3) | (1 << DDA2);
+		PORTA &= ~(1 << DDA1);// 11111101 // 켜주고
+	}
+	else if (selDigit == 1)
+	{
+		selDigit = 2;
+		uint8_t digit = (num / 10) % 10; // 10의 자리값 계산
+		PORTC = bP[digit]; // data 실어주고
+		PORTA |= (1 << DDA3) | (1 << DDA1);
+		PORTA &= ~(1 << DDA2);// 11111011 // 켜주고
+	}
+	else
+	{
+		selDigit = 0;
+		uint8_t digit = num % 10; // 1의 자리값 계산
+		PORTC = bP[digit];// data 실어주고
+		PORTA |= (1 << DDA2) |(1 << DDA1);
+		PORTA &= ~(1 << DDA3);// 11110111 // 켜주고
+	}
+}
+
+volatile unsigned long timer1_millis;
+//NOTE: A unsigned long holds values from 0 to 4,294,967,295 (2^32 - 1). It will roll over to 0 after reaching its maximum value.
+
+//timer1 인터럽트 서비스 루틴
+ISR(TIMER1_COMPA_vect)
+{
+	timer1_millis++;
+}
+// timer1을 설정
+void init_millis(unsigned long f_cpu)
+{
+	unsigned long ctc_match_overflow;
+	
+	ctc_match_overflow = ((f_cpu / 1000) / 8); //when timer1 is this value, 1ms has passed
+	
+	// (Set timer to clear when matching ctc_match_overflow) | (Set clock divisor to 8)
+	TCCR1B |= (1 << WGM12) | (1 << CS11);
+	
+	// high byte first, then low byte
+	OCR1AH = (ctc_match_overflow >> 8);
+	OCR1AL = ctc_match_overflow;
+	
+	// Enable the compare match interrupt
+	TIMSK |= (1 << OCIE1A);
+	
+	//REMEMBER TO ENABLE GLOBAL INTERRUPTS AFTER THIS WITH sei(); !!!
+}
+// 현재시간을 밀리세크 단위로 출력해준다.
+unsigned long millis ()
+{
+	unsigned long millis_return;
+	
+	// Ensure this cannot be disrupted
+	ATOMIC_BLOCK(ATOMIC_FORCEON) {
+		millis_return = timer1_millis;
+	}
+	return millis_return;
+}
+
+void boardInit(void){
+	// timer0 설정 
+	TCCR0 |= (1 << WGM01) //  Clear Timer on Compare Match (CTC) Mode 로 설정
+	| (1 << CS02) | (1 << CS00); // f_cpu/1024 -> 1Khz
+	OCR0 = 64; 
+	TIMSK |= (1 << OCIE0); // timer0 인터럽트 인에이블
+	// DDRx, PORTx, PINx
+	// port A 3~1번째 비트를 출력으로 설정
+	DDRA = (1 << DDA3) | (1 << DDA2) | (1 << DDA1);
+	// port C 7:0번째 비트를 출력으로 설정
+	DDRC = 0xFF;
+	// 위에서 출력으로 설정한 포트 C를 0으로 초기화
+	PORTC = 0;
+	// port D의 0번째 비트를 출력으로 설정
+	DDRD = (1 << DDD0);
+	
+	init_millis(8000000UL); //the frequency Atmega16a is running at
+	sei(); // 글로벌 인터럽트 인에이블
+}
+
+
+#+END_SRC
+** Stepper Motor
+#+BEGIN_SRC c
+#define F_CPU 8000000UL
+#include <avr/io.h>
+#include <util/delay.h>
+
+typedef enum _motDir {CW, CCW}EMotDir;
+
+void stepStm(EMotDir dir)
+{
+	static int8_t theCounter = 0;
+	if (dir == CW) {
+		if (++theCounter > 3) {
+			theCounter = 0;
+		}
+	}else{
+		if (--theCounter < 0) {
+			theCounter = 3;
+		}
+	}
+	PORTD &= 0b10000111;
+	switch (theCounter) {
+		case 0: {PORTD |= 0b00001000; break;}
+		case 1: {PORTD |= 0b00010000; break;}
+		case 2: {PORTD |= 0b00100000; break;}
+		case 3: {PORTD |= 0b01000000; break;}
+		default: break;
+	}
+}
+int main(void)
+{
+	DDRB = (1 << DDB0);
+	
+	// port D의 6:3번째 비트를 출력으로 설정
+	DDRD |= (1 << DDD6) |(1 << DDD5)| (1 << DDD4)| (1 << DDD3);
+	/* Replace with your application code */
+	while (1)
+	{	
+		PORTB ^= 1;
+		stepStm(CW);
+		_delay_ms(100);
+	}
+}
+
+
+#+END_SRC
 * Day 5 ADC 
 ** ADC Polling
-
 #+BEGIN_SRC c
 
   //
@@ -374,43 +577,37 @@ https://www.youtube.com/watch?v=v4BbSzJ-hz4
   int main(void)
   {
       fdevopen(USART_transmit, NULL);
-	
       USART_init(MYUBRR);
+
       // AREF = AVcc
       ADMUX = (1<<REFS0);
-	
+
+      // ADC channel 0
+      ADMUX &= 0xF0; 
+
       // ADC Enable and prescaler of 128
-      // 16000000/128 = 125000
+      // 800000/128 = 62500
       ADCSRA = (1<<ADEN)|(1<<ADPS2)|(1<<ADPS1)|(1<<ADPS0);
       uint16_t i = 0;
-	
+
       /* Replace with your application code */
       while (1)
       {
 	  // start single conversion
 	  // write '1' to ADSC
 	  ADCSRA |= (1<<ADSC);
-		
+
 	  // wait for conversion to complete
 	  // ADSC becomes '0' again
 	  // till then, run loop continuously
 	  while(ADCSRA & (1<<ADSC));
-		
-	  uint16_t adcValue = ADCL;
-	  adcValue = adcValue << 8;
-	  adcValue += ADCH;
-		
-	  printf("%d: ADC Values : %d\r\n", i++, adcValue);
+
+	  printf("%d: ADC Values : %d\r\n", i++, ADCW);
 	  _delay_ms(1000);
       }
   }
-
-
-  
   #+END_SRC
-
 ** ADC auto trigger with timer0 
-   
 #+BEGIN_SRC c
 
   //https://www.electronicsplanet.ch/mikrocontroller/source-code/ATMega16/ATmega16-ADC-Autotrigger-Timer0.htm
@@ -446,19 +643,19 @@ https://www.youtube.com/watch?v=v4BbSzJ-hz4
       USART_init(MYUBRR);
 
       DDRB =  (1 << DDB3) |(1 << DDB2);                     // Setup PB2 and PB3 as output
-	
+
       TCCR0 |= (1<<CS02)|(1<<CS00)|    // Start timer0 with prescaler 1024
 	  (1<<WGM01)|(1<<COM00);  // CTC mode, toggle OC0 on compare match
-	
+
       OCR0 = 255;                      // Set the capturevalue 8000000/1024/255 = 30Hz, PB3
-	
+
       SFIOR |= (1<<ADTS0)|(1<<ADTS1);  // Set Timer 0 Compare as ADC trigger
-	
+
       ADMUX |= (1<<REFS0);             // Set reference to AVcc
 
       ADCSRA |= (1<<ADEN)|(1<<ADATE)|  // Enable ADC, Enable auto Triggering
 	  (1<<ADPS2) | (1<<ADPS1) | (1<<ADPS0)|(1<<ADIE);  // Set prescaler to 16
-      // Fadc=Fcpu/prescaler= 1000000/16=62.5kHz
+      // Fadc=Fcpu/prescaler= 8000000/128=62.5kHz
       // Fadc should be between 50kHz and 200kHz
 
       sei();                           // Set the I-bit in SREG
@@ -473,10 +670,8 @@ https://www.youtube.com/watch?v=v4BbSzJ-hz4
   ISR(ADC_vect)
   {
       static uint8_t n=0;
-      uint16_t adcValue = ADCH;
-      adcValue = adcValue << 8;
-      adcValue += ADCL;
-      if(ADC >= 512)                // Compare the conversionresult with 512
+      uint16_t adcValue = ADCW;
+      if(adcValue >= 512)                // Compare the conversionresult with 512
 	  PORTB |= (1 << PORTB2);            // If larger, set PB3
       else
 	  PORTB &= ~(1 << PORTB2);           // If smaller, reset PB3
